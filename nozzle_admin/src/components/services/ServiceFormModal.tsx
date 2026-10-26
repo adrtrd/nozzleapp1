@@ -197,7 +197,8 @@ export default function ServiceFormModal({ service, onClose, onSave }) {
       onSave();
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.detail || 'فشل حفظ الخدمة، يرجى المحاولة لاحقاً.');
+      const serverMsg = err.response?.data?.message || err.response?.data?.detail;
+      setErrorMsg(serverMsg || 'فشل حفظ الخدمة، يرجى المحاولة لاحقاً.');
     } finally {
       setLoading(false);
     }

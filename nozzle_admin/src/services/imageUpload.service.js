@@ -7,7 +7,7 @@ class ImageUploadService {
 
     // ── المنتجات ─────────────────────────────────────────
     product_main: {
-      maxSizeMB: 2,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 800,
       maxHeight: 800,
@@ -15,7 +15,7 @@ class ImageUploadService {
       aspectRatio: '1:1',
     },
     product_gallery: {
-      maxSizeMB: 2,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 1200,
       maxHeight: 1200,
@@ -25,7 +25,7 @@ class ImageUploadService {
 
     // ── البنرات ──────────────────────────────────────────
     banner_mobile: {
-      maxSizeMB: 3,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 1080,
       maxHeight: 480,
@@ -33,7 +33,7 @@ class ImageUploadService {
       aspectRatio: '9:4',
     },
     banner_web: {
-      maxSizeMB: 4,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 1920,
       maxHeight: 600,
@@ -43,7 +43,7 @@ class ImageUploadService {
 
     // ── الأقسام ──────────────────────────────────────────
     category_icon: {
-      maxSizeMB: 1,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
       maxWidth: 200,
       maxHeight: 200,
@@ -51,7 +51,7 @@ class ImageUploadService {
       aspectRatio: '1:1',
     },
     category_cover: {
-      maxSizeMB: 2,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 800,
       maxHeight: 400,
@@ -61,8 +61,8 @@ class ImageUploadService {
 
     // ── الأقسام الثانوية ─────────────────────────────────
     subcategory_icon: {
-      maxSizeMB: 1,
-      allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+      maxSizeMB: 10,
+      allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
       maxWidth: 200,
       maxHeight: 200,
       quality: 0.9,
@@ -71,7 +71,7 @@ class ImageUploadService {
 
     // ── الشعار والهوية ───────────────────────────────────
     app_logo: {
-      maxSizeMB: 1,
+      maxSizeMB: 10,
       allowedTypes: ['image/png', 'image/svg+xml', 'image/webp'],
       maxWidth: 500,
       maxHeight: 500,
@@ -79,7 +79,7 @@ class ImageUploadService {
       aspectRatio: '1:1',
     },
     app_splash: {
-      maxSizeMB: 3,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 1080,
       maxHeight: 1920,
@@ -89,7 +89,7 @@ class ImageUploadService {
 
     // ── المستخدمون ───────────────────────────────────────
     user_avatar: {
-      maxSizeMB: 1,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 400,
       maxHeight: 400,
@@ -98,7 +98,7 @@ class ImageUploadService {
     },
     // ── الخدمات ──────────────────────────────────────────
     service_image: {
-      maxSizeMB: 2,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 800,
       maxHeight: 600,
@@ -106,7 +106,7 @@ class ImageUploadService {
       aspectRatio: '4:3',
     },
     service_gallery: {
-      maxSizeMB: 3,
+      maxSizeMB: 10,
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       maxWidth: 1200,
       maxHeight: 800,
@@ -136,15 +136,16 @@ class ImageUploadService {
           width = (width * config.maxHeight) / height;
           height = config.maxHeight;
         }
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const outputType = (file.type === 'image/png' || file.type === 'image/webp') ? file.type : 'image/jpeg';
         canvas.toBlob(
           (blob) => {
             if (!blob) return reject(new Error('فشل ضغط الصورة'));
-            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+            resolve(new File([blob], file.name || 'upload.jpg', { type: outputType }));
           },
-          'image/jpeg',
+          outputType,
           config.quality
         );
       };

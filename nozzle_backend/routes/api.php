@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\SpecialOfferController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UploadController;
 use Illuminate\Http\Request;
@@ -41,8 +42,21 @@ Route::get('/products/tags', [ProductTagController::class, 'index']); // New
 Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::get('/categories/{category}/products', [ProductController::class, 'byCategory']);
 
-// V1 API Endpoints for Product Tags
+// Root Product Tags Endpoints (aliases for /v1/product-tags)
+Route::get('/product-tags', [ProductTagController::class, 'index']);
+Route::post('/product-tags', [ProductTagController::class, 'store']);
+Route::get('/product-tags/{id}', [ProductTagController::class, 'show']);
+Route::put('/product-tags/{id}', [ProductTagController::class, 'update']);
+Route::post('/product-tags/{id}', [ProductTagController::class, 'update']);
+Route::delete('/product-tags/{id}', [ProductTagController::class, 'destroy']);
+
+// V1 API Endpoints for Product Tags & Categories
 Route::prefix('v1')->group(function () {
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{id}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+
     Route::get('/product-tags', [ProductTagController::class, 'index']);
     Route::post('/product-tags', [ProductTagController::class, 'store']);
     Route::get('/product-tags/{id}', [ProductTagController::class, 'show']);
@@ -64,17 +78,17 @@ Route::prefix('v1')->group(function () {
     Route::post('/services/book', [\App\Http\Controllers\Api\ServiceBookingController::class, 'store']);
 
     // Shopping Cart (Client V1)
-    Route::get('/cart', [\App\Http\Controllers\Api\CartController::class, 'index']);
-    Route::post('/cart/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
-    Route::put('/cart/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
-    Route::delete('/cart/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
-    Route::post('/cart/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
+    Route::get('/basket', [\App\Http\Controllers\Api\CartController::class, 'index']);
+    Route::post('/basket/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
+    Route::put('/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+    Route::delete('/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+    Route::post('/basket/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
 
     // Profile Cart (Alternative Endpoint V1)
-    Route::get('/profile/cart', [\App\Http\Controllers\Api\CartController::class, 'index']);
-    Route::post('/profile/cart/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
-    Route::put('/profile/cart/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
-    Route::delete('/profile/cart/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+    Route::get('/profile/basket', [\App\Http\Controllers\Api\CartController::class, 'index']);
+    Route::post('/profile/basket/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
+    Route::put('/profile/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+    Route::delete('/profile/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
 
     // Mobile Client Auth Flow
     Route::post('/auth/send-otp', [\App\Http\Controllers\Api\OTPController::class, 'sendOtpApi']);
@@ -90,6 +104,13 @@ Route::prefix('v1')->group(function () {
     Route::delete('/favorites/{product_id}', [\App\Http\Controllers\FavoriteController::class, 'destroy']);
     Route::delete('/favorites', [\App\Http\Controllers\FavoriteController::class, 'destroy']);
     Route::get('/favorites/check', [\App\Http\Controllers\FavoriteController::class, 'check']);
+
+    // Authenticated Auth Endpoints V1 alias
+    Route::middleware('jwt.auth')->group(function () {
+        Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
+        Route::put('/auth/profile', [\App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
+        Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);
+    });
 });
 
 // Auth Endpoints
@@ -103,6 +124,11 @@ Route::middleware('jwt.auth')->group(function () {
     // Settings
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'save']);
+
+    // Notifications (Push campaigns)
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications', [NotificationController::class, 'store']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
     // Dashboard
     Route::get('/stats', [DashboardController::class, 'stats']);

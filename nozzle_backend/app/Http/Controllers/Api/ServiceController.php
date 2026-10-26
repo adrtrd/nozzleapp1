@@ -16,7 +16,7 @@ class ServiceController extends Controller
      */
     public function index(): JsonResponse
     {
-        $services = Service::where('is_available', true)
+        $services = Service::whereIn('is_available', [1, true, '1'])
             ->orderBy('sort_order')
             ->get();
 

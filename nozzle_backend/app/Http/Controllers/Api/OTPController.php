@@ -142,15 +142,27 @@ class OTPController extends Controller
         $user = User::where('phone', $request->phone)->first();
 
         if (!$user) {
-            $user = User::create([
-                'name'     => $request->name,
-                'phone'    => $request->phone,
-                // Assign a strong completely random password since auth relies on OTP
-                'hashed_password' => Hash::make(\Illuminate\Support\Str::random(12)),
-                'email'    => $request->phone . '@nozzle.app', // Fallback email
-            ]);
+            $randomPassword = \Illuminate\Support\Str::random(12);
+            $hashedPassword = Hash::make($randomPassword);
+            $data = [
+                'name'            => $request->name,
+                'full_name'       => $request->name,
+                'phone'           => $request->phone,
+                'password'        => $hashedPassword,
+                'hashed_password' => $hashedPassword,
+                'email'           => $request->phone . '@nozzle.app', // Fallback email
+            ];
+            $columns = \Illuminate\Support\Facades\Schema::getColumnListing((new User)->getTable());
+            $filteredData = array_intersect_key($data, array_flip($columns));
+            $user = User::create($filteredData);
         } else {
-             $user->update(['name' => $request->name]);
+            $data = [
+                'name'      => $request->name,
+                'full_name' => $request->name,
+            ];
+            $columns = \Illuminate\Support\Facades\Schema::getColumnListing($user->getTable());
+            $filteredData = array_intersect_key($data, array_flip($columns));
+            $user->update($filteredData);
         }
 
         $token = \App\Helpers\JWTHelper::encode([
@@ -208,8 +220,8 @@ class OTPController extends Controller
                         'token'       => $token,
                         'user'        => [
                             'id' => $user->id,
-                            'name' => $user->name,
-                            'full_name' => $user->name,
+                            'name' => $user->name ?? $user->full_name,
+                            'full_name' => $user->full_name ?? $user->name,
                             'phone' => $user->phone,
                             'avatar_url' => $user->avatar_url,
                             'created_at' => $user->created_at ? \Carbon\Carbon::parse($user->created_at)->toIso8601String() : null,
@@ -268,20 +280,29 @@ class OTPController extends Controller
         $user = User::where('phone', $phone)->first();
 
         if (!$user) {
-            $user = User::create([
-                'name'      => $request->name,
-                'full_name' => $request->name,
-                'phone'     => $phone,
-                'hashed_password' => Hash::make(\Illuminate\Support\Str::random(12)),
-                'email'     => $phone . '@nozzle.app',
-                'role'      => 'user',
-                'is_active' => true,
-            ]);
+            $randomPassword = \Illuminate\Support\Str::random(12);
+            $hashedPassword = Hash::make($randomPassword);
+            $data = [
+                'name'            => $request->name,
+                'full_name'       => $request->name,
+                'phone'           => $phone,
+                'password'        => $hashedPassword,
+                'hashed_password' => $hashedPassword,
+                'email'           => $phone . '@nozzle.app',
+                'role'            => 'user',
+                'is_active'       => true,
+            ];
+            $columns = \Illuminate\Support\Facades\Schema::getColumnListing((new User)->getTable());
+            $filteredData = array_intersect_key($data, array_flip($columns));
+            $user = User::create($filteredData);
         } else {
-            $user->update([
+            $data = [
                 'name'      => $request->name,
                 'full_name' => $request->name,
-            ]);
+            ];
+            $columns = \Illuminate\Support\Facades\Schema::getColumnListing($user->getTable());
+            $filteredData = array_intersect_key($data, array_flip($columns));
+            $user->update($filteredData);
         }
 
         $longToken = \App\Helpers\JWTHelper::encode([
@@ -294,8 +315,8 @@ class OTPController extends Controller
             'message' => 'Registration completed successfully',
             'data'    => [
                 'id' => $user->id,
-                'name' => $user->name,
-                'full_name' => $user->name,
+                'name' => $user->name ?? $user->full_name,
+                'full_name' => $user->full_name ?? $user->name,
                 'phone' => $user->phone,
                 'token' => $longToken,
                 'avatar_url' => $user->avatar_url,

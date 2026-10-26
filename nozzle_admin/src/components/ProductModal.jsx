@@ -44,20 +44,22 @@ export default function ProductModal({ isOpen, onClose, product, categories = []
   useEffect(() => {
     if (formData.category_id) {
       const selectedParent = categories.find(c => c.id === parseInt(formData.category_id));
-      setSubcategoriesList(selectedParent?.subcategories || []);
+      setSubcategoriesList(selectedParent?.subcategories || selectedParent?.sub_categories || []);
     } else {
       setSubcategoriesList([]);
     }
   }, [formData.category_id, categories]);
 
-  // Fetch tags when subcategory_id changes
+  // Fetch tags when subcategory_id or category_id changes
   useEffect(() => {
     if (formData.subcategory_id) {
       fetchSubcategoryTags(formData.subcategory_id);
+    } else if (formData.category_id) {
+      fetchSubcategoryTags(formData.category_id);
     } else {
       setProductTagsList([]);
     }
-  }, [formData.subcategory_id]);
+  }, [formData.subcategory_id, formData.category_id]);
 
   const fetchSubcategoryTags = async (subId) => {
     try {
@@ -511,7 +513,7 @@ export default function ProductModal({ isOpen, onClose, product, categories = []
               </div>
 
               {/* Product Tags (Sub-Sub-Categories) */}
-              {formData.subcategory_id && (
+              {(formData.subcategory_id || formData.category_id) && (
                 <div className="col-span-2 space-y-2 mt-2">
                   <label className="text-xs font-bold text-gray-600 dark:text-dark-300 block">
                     التصنيفات الدائرية والفرعية (Sub-Sub-Categories) للمنتج
@@ -524,17 +526,19 @@ export default function ProductModal({ isOpen, onClose, product, categories = []
                   ) : (
                     (() => {
                       const topLevelTags = productTagsList.filter(t => !t.parent_id);
-                      const getSubTags = (parentId) => productTagsList.filter(t => t.parent_id === parentId);
+                      const getSubTags = (parentTag) => (parentTag.sub_tags && parentTag.sub_tags.length > 0)
+                        ? parentTag.sub_tags
+                        : productTagsList.filter(t => t.parent_id === parentTag.id);
                       const orphanTags = productTagsList.filter(t => t.parent_id && !productTagsList.some(p => p.id === t.parent_id));
                       
                       if (productTagsList.length === 0) {
-                        return <div className="text-xs text-gray-400 py-1">لا توجد تصنيفات مضافة لهذا القسم الثانوي.</div>;
+                        return <div className="text-xs text-gray-400 py-1">لا توجد تصنيفات مضافة لهذا القسم.</div>;
                       }
 
                       return (
                         <div className="space-y-3.5 pt-1">
                           {topLevelTags.map(parentTag => {
-                            const subTags = getSubTags(parentTag.id);
+                            const subTags = getSubTags(parentTag);
                             const isParentSelected = (formData.tag_ids || []).includes(parentTag.id);
                             
                             return (

@@ -16,7 +16,7 @@ use Filament\Panel;
 use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'full_name', 'email', 'password', 'hashed_password', 'phone', 'avatar', 'is_admin', 'role', 'is_active'])]
+#[Fillable(['name', 'full_name', 'email', 'password', 'hashed_password', 'phone', 'avatar', 'avatar_url', 'is_admin', 'role', 'is_active'])]
 #[Hidden(['password', 'remember_token', 'hashed_password'])]
 class User extends Authenticatable implements FilamentUser
 
@@ -47,7 +47,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getAuthPassword()
     {
-        return $this->hashed_password;
+        return $this->hashed_password ?? $this->password;
     }
 
     /**
@@ -75,6 +75,11 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_admin || $this->hasRole('super_admin');
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->attributes['avatar_url'] ?? $this->attributes['avatar'] ?? null;
     }
 
     public function addresses()

@@ -47,7 +47,7 @@ export default function ProductTagModal({
       const res = await api.get('/categories?include_children=1');
       if (res.data && res.data.status === 'success') {
         const list = [];
-        res.data.data.forEach(parent => {
+        (res.data.data || []).forEach(parent => {
           // Add parent category
           list.push({
             id: parent.id,
@@ -55,8 +55,9 @@ export default function ProductTagModal({
             parentName: ''
           });
           // Add subcategories
-          if (parent.sub_categories && parent.sub_categories.length > 0) {
-            parent.sub_categories.forEach(sub => {
+          const subs = parent.sub_categories || parent.subcategories || [];
+          if (subs.length > 0) {
+            subs.forEach(sub => {
               list.push({
                 id: sub.id,
                 name: sub.name,
@@ -66,6 +67,9 @@ export default function ProductTagModal({
           }
         });
         setSubcategories(list);
+        if (!tag && !subcategoryId && list.length > 0) {
+          setSubcategoryIdState(String(list[0].id));
+        }
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -205,19 +209,19 @@ export default function ProductTagModal({
     e.preventDefault();
     setErrorMessage('');
     
-    if (!name) {
+    if (!name.trim()) {
       setErrorMessage('اسم التصنيف مطلوب');
       return;
     }
     if (!subcategoryIdState) {
-      setErrorMessage('يجب اختيار القسم الثانوي');
+      setErrorMessage('يجب اختيار القسم');
       return;
     }
 
     setSaving(true);
     const isSubTag = !!parentIdState;
     const payload = {
-      name,
+      name: name.trim(),
       subcategory_id: parseInt(subcategoryIdState),
       parent_id: isSubTag ? parseInt(parentIdState) : null,
       image_url: isSubTag ? null : (mediaType === 'image' ? (imageUrl || null) : null),
@@ -298,8 +302,7 @@ export default function ProductTagModal({
               <select
                 value={subcategoryIdState}
                 onChange={(e) => setSubcategoryIdState(e.target.value)}
-                disabled={!!subcategoryId}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-dark-800 bg-transparent dark:text-dark-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm disabled:opacity-60 disabled:bg-gray-50 dark:disabled:bg-dark-850"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-dark-800 bg-transparent dark:text-dark-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 text-sm"
                 required
               >
                 <option value="">-- اختر القسم الذي ينتمي إليه --</option>

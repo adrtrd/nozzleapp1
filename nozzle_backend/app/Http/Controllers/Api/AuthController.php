@@ -24,7 +24,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $username)->orWhere('phone', $username)->first();
 
-        if (!$user || !password_verify($password, $user->hashed_password)) {
+        if (!$user || !password_verify($password, $user->hashed_password ?? $user->password)) {
             return response()->json(['detail' => 'Incorrect email or password'], 401);
         }
 

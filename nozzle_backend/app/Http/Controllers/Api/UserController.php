@@ -249,7 +249,9 @@ class UserController extends Controller
         $user->role = $request->role;
         $user->is_active = $request->is_active;
         $user->hashed_password = \Illuminate\Support\Facades\Hash::make($request->password);
+        $user->password = $request->password;
         $user->avatar_url = $request->avatar_url;
+        $user->avatar = $request->avatar_url;
         $user->save();
 
         return response()->json($user, 201);
@@ -302,9 +304,11 @@ class UserController extends Controller
         
         if ($request->filled('password')) {
             $user->hashed_password = \Illuminate\Support\Facades\Hash::make($request->password);
+            $user->password = $request->password;
         }
         
         $user->avatar_url = $request->avatar_url;
+        $user->avatar = $request->avatar_url;
         $user->save();
 
         return response()->json($user);

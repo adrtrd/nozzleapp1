@@ -45,7 +45,7 @@ class CartController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $sessionId = $request->query('session_id');
+        $sessionId = $request->query('session_key') ?: $request->query('session_id') ?: $request->query('session');
         $userId = $this->getAuthenticatedUserId($request);
 
         $query = CartItem::with('product');
@@ -146,6 +146,8 @@ class CartController extends Controller
             'product_id' => 'required|integer|exists:products,id',
             'quantity' => 'required|integer|min:1',
             'session_id' => 'nullable|string',
+            'session_key' => 'nullable|string',
+            'session' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -158,7 +160,7 @@ class CartController extends Controller
 
         $productId = $request->product_id;
         $quantity = $request->quantity;
-        $sessionId = $request->session_id;
+        $sessionId = $request->input('session_key') ?: $request->session_id ?: $request->input('session');
         $options = $request->input('options', []);
 
         $product = Product::find($productId);
@@ -303,7 +305,7 @@ class CartController extends Controller
      */
     public function clear(Request $request): JsonResponse
     {
-        $sessionId = $request->query('session_id') ?: $request->session_id;
+        $sessionId = $request->query('session_key') ?: $request->query('session_id') ?: $request->query('session') ?: $request->input('session_key') ?: $request->session_id ?: $request->input('session');
         $userId = $this->getAuthenticatedUserId($request);
 
         if ($userId) {

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -36,7 +36,7 @@ api.interceptors.response.use(
         localStorage.removeItem('user');
         // Do not redirect forcefully here to avoid page loops during login
         if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
+          window.location.href = '/panel/login';
         }
       }
     }

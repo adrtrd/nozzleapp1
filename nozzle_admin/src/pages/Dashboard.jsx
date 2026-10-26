@@ -28,50 +28,7 @@ export default function Dashboard() {
 
     fetchDashboardData();
 
-    // Establish WebSocket Connection for Real-time Dashboard Updates
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-    let wsUrl = baseUrl.replace(/^http/, 'ws');
-    const cleanUrl = wsUrl.replace(/\/$/, '');
-    const finalWsUrl = cleanUrl.endsWith('/api') ? `${cleanUrl}/ws/stock` : `${cleanUrl}/api/ws/stock`;
-
-    let socket;
-    let reconnectTimeout;
-
-    const connect = () => {
-      socket = new WebSocket(finalWsUrl);
-
-      socket.onopen = () => {
-        console.log('WebSocket Connected to dashboard stats');
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.event === 'new_order' || data.event === 'order_status_updated' || data.event === 'stock_updated') {
-            console.log('Real-time event received, refreshing dashboard:', data.event);
-            fetchDashboardData();
-          }
-        } catch (e) {
-          console.error('Error parsing WS message:', e);
-        }
-      };
-
-      socket.onclose = () => {
-        console.log('WebSocket disconnected. Reconnecting...');
-        reconnectTimeout = setTimeout(connect, 5000);
-      };
-
-      socket.onerror = (err) => {
-        socket.close();
-      };
-    };
-
-    connect();
-
-    return () => {
-      if (socket) socket.close();
-      clearTimeout(reconnectTimeout);
-    };
+    return () => {};
   }, []);
 
   if (loading) {

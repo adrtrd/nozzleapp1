@@ -31,7 +31,7 @@ export default function Products() {
     try {
       const [prodRes, catRes] = await Promise.all([
         api.get('/products'),
-        api.get('/categories')
+        api.get('/categories?include_children=1')
       ]);
       
       const prodList = prodRes.data?.data || (Array.isArray(prodRes.data) ? prodRes.data : []);

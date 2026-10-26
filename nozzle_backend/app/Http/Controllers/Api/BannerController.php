@@ -140,6 +140,7 @@ class BannerController extends Controller
 
         $validated['views'] = 0;
         $validated['clicks'] = 0;
+        $validated['image'] = $validated['image_url'];
 
         $banner = Banner::create($validated);
 
@@ -187,6 +188,7 @@ class BannerController extends Controller
             $validated['end_date'] = $validated['end_date'] ? \Carbon\Carbon::parse($validated['end_date']) : null;
         }
 
+        $validated['image'] = $validated['image_url'];
         $banner->update($validated);
 
         return response()->json([

@@ -30,12 +30,12 @@ async function getBase64FromUrl(url) {
   try {
     // Resolve relative URL to absolute backend URL
     let targetUrl = url;
-    if (url.startsWith('/')) {
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      targetUrl = `${backendUrl}${url}`;
+    if (url.startsWith('http')) {
+      targetUrl = url;
+    } else if (url.startsWith('/')) {
+      targetUrl = url;
     } else if (url.startsWith('static/')) {
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      targetUrl = `${backendUrl}/${url}`;
+      targetUrl = `/${url}`;
     }
     
     const response = await fetch(targetUrl);

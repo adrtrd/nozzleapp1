@@ -24,8 +24,12 @@ class UploadController extends Controller
             File::makeDirectory($uploadDir, 0755, true);
         }
 
-        $cleanName = preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-        $filename = time() . '_' . $cleanName;
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $cleanBase = preg_replace('/[^a-zA-Z0-9_-]/', '', pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        if (empty($cleanBase)) {
+            $cleanBase = 'upload_' . substr(md5(uniqid('', true)), 0, 6);
+        }
+        $filename = time() . '_' . $cleanBase . '.' . $ext;
         
         $file->move($uploadDir, $filename);
 
@@ -59,8 +63,12 @@ class UploadController extends Controller
             File::makeDirectory($uploadDir, 0755, true);
         }
 
-        $cleanName = preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-        $filename = time() . '_' . $cleanName;
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $cleanBase = preg_replace('/[^a-zA-Z0-9_-]/', '', pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        if (empty($cleanBase)) {
+            $cleanBase = 'img_' . substr(md5(uniqid('', true)), 0, 6);
+        }
+        $filename = time() . '_' . $cleanBase . '.' . $ext;
         
         $file->move($uploadDir, $filename);
 

@@ -43,55 +43,7 @@ export default function Orders() {
   useEffect(() => {
     fetchOrders();
 
-    // Establish WebSocket Connection for Real-time Order Updates
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-    let wsUrl = baseUrl.replace(/^http/, 'ws');
-    const cleanUrl = wsUrl.replace(/\/$/, '');
-    const finalWsUrl = cleanUrl.endsWith('/api') ? `${cleanUrl}/ws/stock` : `${cleanUrl}/api/ws/stock`;
-
-    let socket;
-    let reconnectTimeout;
-
-    const connect = () => {
-      socket = new WebSocket(finalWsUrl);
-
-      socket.onopen = () => {
-        console.log('WebSocket Connected to dashboard orders');
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.event === 'new_order') {
-            console.log('New order received:', data);
-            fetchOrders();
-            const formattedTotal = Number(data.total_amount).toLocaleString();
-            showToast(`طلب جديد معلق بقيمة ${formattedTotal} د.ع من ${data.customer_name}`, 'success');
-          } else if (data.event === 'order_status_updated') {
-            console.log('Order status updated:', data);
-            fetchOrders();
-          }
-        } catch (e) {
-          console.error('Error parsing WS message:', e);
-        }
-      };
-
-      socket.onclose = () => {
-        console.log('WebSocket disconnected. Reconnecting...');
-        reconnectTimeout = setTimeout(connect, 5000);
-      };
-
-      socket.onerror = (err) => {
-        socket.close();
-      };
-    };
-
-    connect();
-
-    return () => {
-      if (socket) socket.close();
-      clearTimeout(reconnectTimeout);
-    };
+    return () => {};
   }, []);
 
   const showToast = (message, type = 'success') => {

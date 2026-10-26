@@ -105,9 +105,10 @@ const DashboardLayout = () => {
 };
 
 export default function App() {
+  const routerBase = window.location.pathname.startsWith('/admin') ? '/admin' : '/panel';
   return (
     <ThemeProvider>
-      <Router>
+      <Router basename={routerBase}>
         <AuthProvider>
           <Routes>
             {/* Public Login Route */}

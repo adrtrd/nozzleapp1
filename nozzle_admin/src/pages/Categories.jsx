@@ -45,12 +45,13 @@ export default function Categories() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/categories');
+      const res = await api.get('/categories?include_children=1');
       if (res.data && res.data.status === 'success') {
-        setCategories(res.data.data);
+        const data = res.data.data || [];
+        setCategories(data);
         
         // Extract all categories as a flat list for parent dropdown (only root categories can be parents)
-        const flatParents = res.data.data.filter(c => !c.parent_id);
+        const flatParents = data.filter(c => !c.parent_id);
         setParentList(flatParents);
       }
     } catch (err) {
@@ -110,20 +111,25 @@ export default function Categories() {
     e.preventDefault();
     setErrorMessage('');
     
-    if (!name || !slug) {
-      setErrorMessage('الاسم والرابط اللطيف مطلوبان');
+    if (!name.trim()) {
+      setErrorMessage('اسم القسم مطلوب');
       return;
     }
 
+    const finalSlug = (slug || name)
+      .toLowerCase()
+      .replace(/[^a-z0-9\u0600-\u06FF]+/g, '-')
+      .replace(/^-+|-+$/g, '') || `category-${Date.now()}`;
+
     const payload = {
-      name,
+      name: name.trim(),
       description: description || null,
       parent_id: parentId ? parseInt(parentId) : null,
       icon_url: iconUrl || null,
       image_url: imageUrl || null,
       seo_title: seoTitle || null,
       seo_description: seoDescription || null,
-      slug,
+      slug: finalSlug,
       is_active: isActive
     };
 
@@ -133,10 +139,13 @@ export default function Categories() {
       } else {
         await api.post('/categories', payload);
       }
+      if (parentId) {
+        setExpandedNodes(prev => ({ ...prev, [parseInt(parentId)]: true }));
+      }
       setModalOpen(false);
       fetchCategories();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'حدث خطأ أثناء حفظ القسم';
+      const msg = err.response?.data?.message || err.response?.data?.detail || 'حدث خطأ أثناء حفظ القسم';
       setErrorMessage(msg);
     }
   };
@@ -407,8 +416,8 @@ export default function Categories() {
                   folder="categories"
                   value={iconUrl}
                   onChange={(url) => setIconUrl(url)}
-                  label="أيقونة القسم"
-                  required={true}
+                  label="أيقونة القسم (اختياري)"
+                  required={false}
                 />
                 
                 {!parentId && (

@@ -46,7 +46,11 @@ export default function ProductTagsPage() {
     try {
       const res = await api.get('/categories?include_children=1');
       if (res.data && res.data.status === 'success') {
-        setCategories(res.data.data);
+        const data = res.data.data || [];
+        setCategories(data);
+        if (data.length > 0 && !selectedParentId) {
+          setSelectedParentId(String(data[0].id));
+        }
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -57,7 +61,7 @@ export default function ProductTagsPage() {
   useEffect(() => {
     if (selectedParentId) {
       const parent = categories.find(c => c.id === parseInt(selectedParentId));
-      setSubcategoriesList(parent?.sub_categories || []);
+      setSubcategoriesList(parent?.sub_categories || parent?.subcategories || []);
       setSelectedSubId('');
       setTags([]);
     } else {
@@ -154,7 +158,11 @@ export default function ProductTagsPage() {
     setModalOpen(false);
     setDefaultParentId(null);
     showNotification('تم حفظ التصنيف بنجاح');
-    fetchTags(selectedSubId || selectedParentId);
+    if (selectedSubId || selectedParentId) {
+      fetchTags(selectedSubId || selectedParentId);
+    } else if (categories.length > 0) {
+      setSelectedParentId(String(categories[0].id));
+    }
   };
 
   const showNotification = (msg) => {
@@ -262,8 +270,7 @@ export default function ProductTagsPage() {
         </div>
         <button 
           onClick={() => handleOpenAdd(null)}
-          disabled={!selectedParentId && !selectedSubId}
-          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary-600/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary-600/20 transition-all active:scale-95"
         >
           <Plus size={18} />
           إضافة تصنيف رئيسي جديد
