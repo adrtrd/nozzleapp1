@@ -81,14 +81,21 @@ Route::prefix('v1')->group(function () {
     Route::get('/basket', [\App\Http\Controllers\Api\CartController::class, 'index']);
     Route::post('/basket/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
     Route::put('/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+    Route::post('/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+    Route::put('/basket/update/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'update']);
     Route::delete('/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+    Route::post('/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+    Route::delete('/basket/remove', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
     Route::post('/basket/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
+    Route::delete('/basket/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
 
     // Profile Cart (Alternative Endpoint V1)
     Route::get('/profile/basket', [\App\Http\Controllers\Api\CartController::class, 'index']);
     Route::post('/profile/basket/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
     Route::put('/profile/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+    Route::post('/profile/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
     Route::delete('/profile/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+    Route::post('/profile/basket/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
 
     // Mobile Client Auth Flow
     Route::post('/auth/send-otp', [\App\Http\Controllers\Api\OTPController::class, 'sendOtpApi']);
@@ -241,4 +248,24 @@ Route::get('/services/{id}', [\App\Http\Controllers\Api\ServiceController::class
 Route::post('/services/book', [\App\Http\Controllers\Api\ServiceBookingController::class, 'store']);
 Route::post('/service-requests', [\App\Http\Controllers\Api\ServiceBookingController::class, 'store']);
 Route::get('/service-requests', [\App\Http\Controllers\Api\ServiceBookingController::class, 'index']);
+
+// Root Shopping Cart aliases
+Route::get('/basket', [\App\Http\Controllers\Api\CartController::class, 'index']);
+Route::post('/basket/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
+Route::put('/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+Route::post('/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+Route::put('/basket/update/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'update']);
+Route::delete('/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+Route::post('/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+Route::delete('/basket/remove', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+Route::post('/basket/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
+Route::delete('/basket/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
+
+Route::get('/profile/basket', [\App\Http\Controllers\Api\CartController::class, 'index']);
+Route::post('/profile/basket/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
+Route::put('/profile/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+Route::post('/profile/basket/update', [\App\Http\Controllers\Api\CartController::class, 'update']);
+Route::delete('/profile/basket/remove/{item_id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+Route::post('/profile/basket/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
+
 

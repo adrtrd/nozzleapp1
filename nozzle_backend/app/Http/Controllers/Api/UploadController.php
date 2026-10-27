@@ -44,11 +44,11 @@ class UploadController extends Controller
      */
     public function uploadImage(Request $request)
     {
-        if (!$request->hasFile('file')) {
+        $file = $request->file('file') ?: $request->file('image');
+
+        if (!$file) {
             return response()->json(['detail' => 'No file provided'], 400);
         }
-
-        $file = $request->file('file');
         
         // Validate MIME type
         $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif'];
@@ -103,5 +103,27 @@ class UploadController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'لم يتم العثور على الملف لحذفه']);
+    }
+
+    /**
+     * Proxy image to bypass browser CORS taint on HTML5 canvas.
+     */
+    public function proxyImage(Request $request)
+    {
+        $fileParam = $request->query('file') ?: $request->query('url');
+        $safeFilename = basename($fileParam);
+        $filePath = public_path('static/uploads/' . $safeFilename);
+
+        if (!File::exists($filePath)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $mimeType = mime_content_type($filePath) ?: 'image/png';
+        $content = File::get($filePath);
+
+        return response($content, 200)
+            ->header('Content-Type', $mimeType)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Access-Control-Allow-Methods', 'GET, OPTIONS');
     }
 }

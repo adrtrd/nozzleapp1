@@ -65,7 +65,9 @@ class CategoryController extends Controller
         $this->ensureSchema();
 
         $parentId = $request->input('parent_id');
+        $departmentId = $request->input('department_id');
         $parentOnly = $request->boolean('parent_only', false);
+        $isFlat = $request->boolean('all', false) || $request->boolean('flat', false) || $request->boolean('include_all', false);
         $includeChildren = $request->has('include_children')
             ? $request->boolean('include_children')
             : true;
@@ -84,11 +86,15 @@ class CategoryController extends Controller
             $query->orderBy('order_index');
         }
 
+        if ($departmentId !== null && $departmentId !== '' && Schema::hasColumn('categories', 'department_id')) {
+            $query->where('department_id', $departmentId);
+        }
+
         if ($parentId !== null && $parentId !== '') {
             $query->where('parent_id', $parentId);
         } elseif ($parentOnly) {
             $query->whereNull('parent_id');
-        } else {
+        } elseif (!$isFlat) {
             // Default behavior if neither is specified: get parent categories
             $query->whereNull('parent_id');
         }
@@ -221,15 +227,7 @@ class CategoryController extends Controller
 
             $cat->save();
 
-            // If root category and department_id column exists and is null, set to self id if appropriate
-            if ($hasCol('department_id') && $cat->parent_id === null && empty($cat->department_id)) {
-                try {
-                    $cat->department_id = $cat->id;
-                    $cat->save();
-                } catch (\Throwable $e) {
-                    // Ignore if department_id has a foreign key to another table
-                }
-            }
+            $this->syncCategoryDepartment($cat, $hasCol('department_id'));
 
             try {
                 if (Schema::hasTable('audit_logs')) {
@@ -296,6 +294,9 @@ class CategoryController extends Controller
                     $cat->parent_id = $parentId;
                 }
             }
+            if ($request->has('department_id') && $hasCol('department_id')) {
+                $cat->department_id = $request->input('department_id');
+            }
             if ($request->has('icon_url')) {
                 if ($hasCol('icon_url')) {
                     $cat->icon_url = $request->input('icon_url');
@@ -345,6 +346,8 @@ class CategoryController extends Controller
             }
 
             $cat->save();
+
+            $this->syncCategoryDepartment($cat, $hasCol('department_id'));
 
             try {
                 if (Schema::hasTable('audit_logs')) {
@@ -404,6 +407,8 @@ class CategoryController extends Controller
             }
         }
 
+        $this->bustDepartmentCache();
+
         return response()->json([
             'status' => 'success',
             'success' => true,
@@ -419,16 +424,38 @@ class CategoryController extends Controller
         $cat = Category::find($id);
         if (!$cat) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'القسم غير موجود',
-                'detail' => 'Category not found'
-            ], 404);
+                'status' => 'success',
+                'success' => true,
+                'message' => 'Category deleted or already removed'
+            ]);
         }
 
         $categoryName = $cat->name;
-        // Also delete child categories explicitly if foreign key cascade is not active
+        $deptId = $cat->department_id ?? null;
+        $isRoot = ($cat->parent_id === null);
+
+        // Remove subcategories and clear category from products safely
         Category::where('parent_id', $cat->id)->delete();
+        if (Schema::hasTable('products')) {
+            Product::where('category_id', $cat->id)->update(['category_id' => null]);
+        }
+
         $cat->delete();
+
+        if ($isRoot) {
+            try {
+                if (class_exists(\App\Models\Department::class) && Schema::hasTable('departments')) {
+                    if ($deptId) {
+                        \App\Models\Department::where('id', $deptId)->delete();
+                    }
+                    \App\Models\Department::where('id', $id)->delete();
+                    \App\Models\Department::where('name', $categoryName)->delete();
+                }
+            } catch (\Throwable $e) {
+                // Ignore department cleanup errors
+            }
+        }
+        $this->bustDepartmentCache();
 
         try {
             if (Schema::hasTable('audit_logs')) {
@@ -448,6 +475,55 @@ class CategoryController extends Controller
             'success' => true,
             'message' => 'Category deleted successfully'
         ]);
+    }
+
+    private function syncCategoryDepartment($cat, bool $hasDeptCol): void
+    {
+        try {
+            if ($cat->parent_id === null && class_exists(\App\Models\Department::class) && Schema::hasTable('departments')) {
+                $deptSlug = $cat->slug ?: Str::slug($cat->name) ?: ('dept-' . $cat->id);
+                $baseDeptSlug = $deptSlug;
+                $i = 1;
+                while (\App\Models\Department::where('slug', $deptSlug)->where('id', '!=', $cat->id)->exists()) {
+                    $deptSlug = $baseDeptSlug . '-' . $i++;
+                }
+
+                $dept = \App\Models\Department::updateOrCreate(
+                    ['id' => $cat->id],
+                    [
+                        'name' => $cat->name,
+                        'slug' => $deptSlug,
+                        'description' => $cat->description,
+                        'icon_url' => $cat->icon_url,
+                        'image_url' => $cat->image_url,
+                        'sort_order' => (int)($cat->sort_order ?? 0),
+                        'is_active' => (bool)($cat->is_active ?? true),
+                    ]
+                );
+                if ($hasDeptCol && $cat->department_id !== $dept->id) {
+                    $cat->department_id = $dept->id;
+                    $cat->saveQuietly();
+                }
+            } elseif ($hasDeptCol && $cat->parent_id === null && empty($cat->department_id)) {
+                $cat->department_id = $cat->id;
+                $cat->saveQuietly();
+            }
+        } catch (\Throwable $e) {
+            // Ignore department sync errors if departments table is absent
+        }
+        $this->bustDepartmentCache();
+    }
+
+    private function bustDepartmentCache(): void
+    {
+        try {
+            \Illuminate\Support\Facades\Cache::forget('departments_with_cats_public');
+            \Illuminate\Support\Facades\Cache::forget('departments_with_cats_admin');
+            \Illuminate\Support\Facades\Cache::forget('departments_no_cats_public');
+            \Illuminate\Support\Facades\Cache::forget('departments_no_cats_admin');
+        } catch (\Throwable $e) {
+            // Ignore cache errors
+        }
     }
 
     private function formatAssetUrl(?string $url): ?string

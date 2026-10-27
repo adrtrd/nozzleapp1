@@ -9,6 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('service_requests', function (Blueprint $table) {
+            if (!Schema::hasColumn('service_requests', 'user_id'))      $table->unsignedBigInteger('user_id')->nullable();
             if (!Schema::hasColumn('service_requests', 'completed_at')) $table->timestamp('completed_at')->nullable();
             if (!Schema::hasColumn('service_requests', 'admin_notes'))  $table->text('admin_notes')->nullable();
         });
@@ -24,6 +25,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('service_requests', function (Blueprint $table) {
+            if (Schema::hasColumn('service_requests', 'user_id'))      $table->dropColumn('user_id');
             if (Schema::hasColumn('service_requests', 'completed_at')) $table->dropColumn('completed_at');
             if (Schema::hasColumn('service_requests', 'admin_notes'))  $table->dropColumn('admin_notes');
         });

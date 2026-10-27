@@ -9,6 +9,7 @@ use App\Models\ServiceRequestStatusHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -19,6 +20,8 @@ class ServiceBookingController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        ServiceBooking::ensureSchema();
+
         $validator = Validator::make($request->all(), [
             'service_id' => 'required_without:services|exists:services,id',
             'services' => 'nullable|array',
@@ -38,6 +41,10 @@ class ServiceBookingController extends Controller
         }
 
         try {
+            $hasUserIdCol = Schema::hasColumn('service_requests', 'user_id');
+            $hasHistoryNoteCol = Schema::hasColumn('service_request_status_history', 'note');
+            $hasHistoryNotesCol = Schema::hasColumn('service_request_status_history', 'notes');
+
             DB::beginTransaction();
 
             $user = auth()->user();
@@ -115,14 +122,13 @@ class ServiceBookingController extends Controller
                 $itemTotalPrice = isset($item['total_price']) ? (float)$item['total_price'] : ($basePrice + $extraPrice);
                 $itemRequestNumber = count($servicesList) > 1 ? ($requestNumber . '-' . ($index + 1)) : $requestNumber;
 
-                $booking = ServiceBooking::create([
+                $bookingData = [
                     'request_number' => $itemRequestNumber,
-                    'user_id' => $userId,
                     'service_id' => $serviceId,
                     'service_option_id' => $optionId ?: null,
                     'customer_name' => $customerName,
                     'customer_phone' => $customerPhone,
-                    'address' => $request->input('address', ''),
+                    'address' => $request->input('address') ?: 'داخل المركز',
                     'latitude' => $request->input('latitude'),
                     'longitude' => $request->input('longitude'),
                     'scheduled_date' => $scheduledDate,
@@ -130,19 +136,32 @@ class ServiceBookingController extends Controller
                     'notes' => $notes,
                     'status' => 'new',
                     'total_price' => $itemTotalPrice,
-                    'payment_method' => $request->input('payment_method', 'cash'),
-                    'payment_status' => $request->input('payment_status', 'unpaid'),
-                ]);
+                    'payment_method' => $request->input('payment_method') ?: 'cash',
+                    'payment_status' => $request->input('payment_status') ?: 'unpaid',
+                ];
+
+                if ($hasUserIdCol) {
+                    $bookingData['user_id'] = $userId;
+                }
+
+                $booking = ServiceBooking::create($bookingData);
 
                 // Log status history
-                ServiceRequestStatusHistory::create([
+                $historyData = [
                     'service_request_id' => $booking->id,
                     'old_status' => null,
                     'new_status' => 'new',
                     'changed_by' => 'الزبون',
-                    'note' => $notes ?: 'تم إنشاء طلب الحجز بنجاح عبر التطبيق',
                     'notify_customer' => true,
-                ]);
+                ];
+                $historyNote = $notes ?: 'تم إنشاء طلب الحجز بنجاح عبر التطبيق';
+                if ($hasHistoryNoteCol) {
+                    $historyData['note'] = $historyNote;
+                } elseif ($hasHistoryNotesCol) {
+                    $historyData['notes'] = $historyNote;
+                }
+
+                ServiceRequestStatusHistory::create($historyData);
 
                 $bookingsCreated[] = ServiceBooking::with(['service', 'option'])->find($booking->id);
             }
@@ -170,6 +189,9 @@ class ServiceBookingController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        ServiceBooking::ensureSchema();
+        $hasUserIdCol = Schema::hasColumn('service_requests', 'user_id');
+
         $phone = $request->query('phone');
         $user = auth()->user();
         if (!$user) {
@@ -203,8 +225,11 @@ class ServiceBookingController extends Controller
                 }
             } else {
                 $userPhone = $user->phone ?: '';
-                $bookings = ServiceBooking::where('customer_phone', $userPhone)
-                    ->orWhere('user_id', $user->id)
+                $query = ServiceBooking::where('customer_phone', $userPhone);
+                if ($hasUserIdCol) {
+                    $query->orWhere('user_id', $user->id);
+                }
+                $bookings = $query
                     ->with(['service', 'option'])
                     ->orderBy('created_at', 'desc')
                     ->get();
@@ -233,15 +258,29 @@ class ServiceBookingController extends Controller
      */
     public function userBookings(): JsonResponse
     {
-        $userId = auth()->id();
-        if (!$userId) {
+        ServiceBooking::ensureSchema();
+        $user = auth()->user();
+        if (!$user) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'غير مصرح بالدخول'
             ], 401);
         }
 
-        $bookings = ServiceBooking::where('user_id', $userId)
+        $hasUserIdCol = Schema::hasColumn('service_requests', 'user_id');
+        $query = ServiceBooking::query();
+        if ($hasUserIdCol) {
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+                if ($user->phone) {
+                    $q->orWhere('customer_phone', $user->phone);
+                }
+            });
+        } else {
+            $query->where('customer_phone', $user->phone ?: '');
+        }
+
+        $bookings = $query
             ->with(['service', 'option'])
             ->orderBy('created_at', 'desc')
             ->get();

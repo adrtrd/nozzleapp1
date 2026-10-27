@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class Order extends Model
 {
@@ -10,9 +12,31 @@ class Order extends Model
 
     public $timestamps = false;
 
+    private static bool $schemaChecked = false;
+
+    public static function ensureSchema(): void
+    {
+        if (self::$schemaChecked) {
+            return;
+        }
+        self::$schemaChecked = true;
+
+        try {
+            if (Schema::hasTable('orders') && !Schema::hasColumn('orders', 'user_id')) {
+                Schema::table('orders', function (Blueprint $table) {
+                    $table->unsignedBigInteger('user_id')->nullable();
+                });
+            }
+        } catch (\Throwable $e) {
+            // Ignore if DB is read-only
+        }
+    }
+
     protected static function boot()
     {
         parent::boot();
+
+        self::ensureSchema();
 
         static::creating(function ($model) {
             if (!$model->created_at) {
